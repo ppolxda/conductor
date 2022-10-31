@@ -30,6 +30,13 @@ dependencies {
     implementation project(':conductor-awss3-storage')
     implementation project(':conductor-awssqs-event-queue')
 
+    implementation "com.netflix.conductor:conductor-amqp:${revConductorCommon}"
+    implementation "com.netflix.conductor:conductor-nats:${revConductorCommon}"
+    implementation "com.netflix.conductor:conductor-postgres-external-storage:${revConductorCommon}"
+    implementation "com.netflix.conductor:conductor-common-persistence:${revConductorCommon}"
+    implementation "com.netflix.conductor:conductor-postgres-persistence:${revConductorCommon}"
+    implementation "com.netflix.conductor:conductor-mysql-persistence:${revConductorCommon}"
+
     implementation 'org.springframework.boot:spring-boot-starter'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-web'

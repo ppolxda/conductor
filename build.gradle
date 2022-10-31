@@ -2,6 +2,14 @@ import org.springframework.boot.gradle.plugin.SpringBootPlugin
 
 buildscript {
     repositories {
+        maven {
+            allowInsecureProtocol: true
+            url 'https://maven.aliyun.com/repository/public'
+        }
+        maven {
+            allowInsecureProtocol: true
+            url 'https://maven.aliyun.com/repository/google'
+        }
         mavenCentral()
         maven {
             url "https://plugins.gradle.org/m2/"
