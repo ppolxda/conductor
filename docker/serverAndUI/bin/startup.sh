@@ -33,4 +33,6 @@ if [ -z "$CONFIG_PROP" ];
     export config_file=/app/config/$CONFIG_PROP
 fi
 
-nohup java -jar -DCONDUCTOR_CONFIG_FILE=$config_file conductor-server-*-boot.jar 1>&2 > /app/logs/server.log
+echo "Using java options config: $JAVA_OPTS"
+
+java ${JAVA_OPTS} -jar -DCONDUCTOR_CONFIG_FILE=$config_file conductor-server-*-boot.jar 2>&1 | tee -a /app/logs/server.log

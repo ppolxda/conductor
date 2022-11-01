@@ -1,17 +1,17 @@
 version: '2.3'
 
-services:
-  conductor-server:
+services:  
+  conductor-server-ui:
     environment:
       - CONFIG_PROP=config-local.properties
-    image: conductor:server
-    container_name: conductor-server
+    image: conductor-service-ui
     build:
       context: ../
-      dockerfile: docker/server/Dockerfile
+      dockerfile: docker/serverAndUI/Dockerfile
     networks:
       - internal
     ports:
+      - 5000:5000
       - 8080:8080
     healthcheck:
       test: ["CMD", "curl","-I" ,"-XGET", "http://localhost:8080/health"]
@@ -20,7 +20,8 @@ services:
       retries: 12
     links:
       - elasticsearch:es
-      - redis:rs
+      - redis:redisdb
+      - rabbit:rabbitmq
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -31,33 +32,6 @@ services:
       options:
         max-size: "1k"
         max-file: "3"
-
-  conductor-ui:
-    environment:
-      - WF_SERVER=http://conductor-server:8080
-    image: conductor:ui
-    container_name: conductor-ui
-    build:
-      context: ../
-      dockerfile: docker/ui/Dockerfile
-    networks:
-      - internal
-    ports:
-      - 5000:5000
-    links:
-      - conductor-server
-    stdin_open: true
-
-  redis:
-    image: redis:6.2.3-alpine
-    volumes:
-      - ./redis.conf:/usr/local/etc/redis/redis.conf
-    networks:
-      - internal
-    ports:
-      - 6379:6379
-    healthcheck:
-      test: [ "CMD", "redis-cli","ping" ]
 
   elasticsearch:
     image: elasticsearch:6.8.15
@@ -84,6 +58,112 @@ services:
       options:
         max-size: "1k"
         max-file: "3"
+
+  kibana:
+    container_name: kibana
+    restart: always    
+    image: kibana:6.8.23
+    # volumes:
+    #   - /home/elk/config/kibana.yml:/usr/share/kibana/config/kibana.yml
+    links:
+      - elasticsearch
+    networks:
+      - internal
+    environment:
+      # - TZ=Asia/Shanghai    
+      - http.host=0.0.0.0  
+      - elasticsearch.url=http://elasticsearch:9200
+      - elasticsearch.hosts=http://elasticsearch:9200
+      - xpack.monitoring.enabled=false
+      #- xpack.monitoring.ui.container.elasticsearch.enabled=true
+      #- monitoring.ui.container.elasticsearch.enabled=true      
+      #- elasticsearch.username=elastic    
+      #- elasticsearch.password=aa111111
+      #- xpack.security.enabled=true      
+    ports:
+      - 5601:5601
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  rabbit:
+    image: rabbitmq:3.9-management
+    hostname: rabbit
+    container_name: "wycs_rabbitmq3.9"
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+      - RABBITMQ_ERLANG_COOKIE='takeMyCookies'
+      - RABBITMQ_SECURE_PASSWORD=yes
+    volumes:
+      - rabbitmq-conductor:/var/lib/rabbitmq/mnesia
+    networks:
+      - internal
+
+  redis:
+    image: redis:latest
+    ports:
+      - 6379:6379
+    volumes:
+      - redis-volume:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 30s
+      retries: 50
+    restart: always
+    networks:
+      - internal
+
+  minio:
+    image: minio/minio:RELEASE.2022-08-08T18-34-09Z
+    # user: "${UID}:${GID}"
+    environment:
+        # https://min.io/docs/minio/linux/reference/minio-server/minio-server.html
+        MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+        MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+        MINIO_NOTIFY_AMQP_ENABLE_MYQUEUE: "on"
+        MINIO_NOTIFY_AMQP_URL_MYQUEUE: amqp://admin:admin@rabbit:5672/
+        MINIO_NOTIFY_AMQP_EXCHANGE_MYQUEUE: "minio"
+        MINIO_NOTIFY_AMQP_EXCHANGE_TYPE_MYQUEUE: "direct"
+        MINIO_NOTIFY_AMQP_ROUTING_KEY_MYQUEUE: "events"
+        MINIO_NOTIFY_AMQP_MANDATORY_MYQUEUE: "on"
+        MINIO_NOTIFY_AMQP_DURABLE_MYQUEUE: "true"
+        MINIO_NOTIFY_AMQP_NO_WAIT_MYQUEUE: "off"
+        MINIO_NOTIFY_AMQP_INTERNAL_MYQUEUE: "off"
+        MINIO_NOTIFY_AMQP_AUTO_DELETED_MYQUEUE: "false" 
+        MINIO_NOTIFY_AMQP_DELIVERY_MODE_MYQUEUE: "2"
+        # MINIO_NOTIFY_AMQP_QUEUE_DIR_MYQUEUE: "<string>"
+        # MINIO_NOTIFY_AMQP_QUEUE_LIMIT_MYQUEUE: "<string>"
+        MINIO_NOTIFY_AMQP_COMMENT_MYQUEUE: minio RabbitMQ
+    ports:
+      - 9000:9000
+      - 9001:9001
+    links:
+      - rabbit:rabbit
+    depends_on:
+      - rabbit
+    volumes:
+      - minio-volume:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "-f",
+          "http://localhost:9000/minio/health/live"
+        ]
+      interval: 1s
+      timeout: 10s
+      retries: 5
+    restart: always
+    networks:
+      - internal
 
 volumes:
   esdata-conductor:

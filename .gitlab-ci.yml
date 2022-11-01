@@ -1,0 +1,44 @@
+stages:
+  - build
+  - deploy
+
+build:
+  stage: build
+  only:
+    - develop
+    - main
+    - tags
+  # before_script:
+  #   # - git submodule sync --recursive
+  #   # - git submodule update --init --recursive
+  script:
+    - git version
+    - PROJECT_NAME=""
+    - CI_PROJECT_NAMESPACE="other"
+    - if [[ $CI_COMMIT_TAG ]]; then PROJECT_NAME="-release"; fi
+    # - cd docker
+    # - docker-compose build .
+
+    - docker build -t conductor:server-ui -f docker/serverAndUI/Dockerfile .
+
+    - docker tag conductor:server-ui nexus.oigit.cn/$CI_PROJECT_NAMESPACE$PROJECT_NAME/conductor-server-ui-$CI_COMMIT_REF_NAME:$CI_COMMIT_SHA
+    - docker tag conductor:server-ui nexus.oigit.cn/$CI_PROJECT_NAMESPACE$PROJECT_NAME/conductor-server-ui-$CI_COMMIT_REF_NAME:latest
+
+    - docker login -u $DOCKER_USER -p $DOCKER_PWD nexus.oigit.cn
+    - docker push nexus.oigit.cn/$CI_PROJECT_NAMESPACE$PROJECT_NAME/conductor-server-ui-$CI_COMMIT_REF_NAME:$CI_COMMIT_SHA
+    - docker push nexus.oigit.cn/$CI_PROJECT_NAMESPACE$PROJECT_NAME/conductor-server-ui-$CI_COMMIT_REF_NAME:latest
+
+    - docker rmi nexus.oigit.cn/$CI_PROJECT_NAMESPACE$PROJECT_NAME/conductor-server-ui-$CI_COMMIT_REF_NAME:$CI_COMMIT_SHA
+    - docker rmi nexus.oigit.cn/$CI_PROJECT_NAMESPACE$PROJECT_NAME/conductor-server-ui-$CI_COMMIT_REF_NAME:latest
+    - docker rmi conductor:server-ui
+
+deploy:
+  stage: deploy
+  only:
+    - develop
+    - main
+  script:
+    - PROJECT_NAME=""
+    - CI_PROJECT_NAMESPACE="other"
+    - if [[ $CI_COMMIT_TAG ]]; then PROJECT_NAME="-release"; fi
+    - ssh root@kubenode1 "kubectl -n conductor-master set image deployment/conductor-server-ui-v1 *=nexus.oigit.cn/$CI_PROJECT_NAMESPACE$PROJECT_NAME/conductor-server-ui-$CI_COMMIT_REF_NAME:$CI_COMMIT_SHA"
