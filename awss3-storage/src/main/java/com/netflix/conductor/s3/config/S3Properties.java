@@ -31,6 +31,21 @@ public class S3Properties {
     /** The AWS region of the s3 bucket */
     private String region = "us-east-1";
 
+    /** The AWS region of the s3 endpoint */
+    private String endpoint = "";
+
+    /** The AWS region of the s3 access key */
+    private String accessKey = "";
+
+    /** The AWS region of the s3 secret key */
+    private String secretKey = "";
+
+    /** The AWS region of the s3 signerType */
+    private String signerType = "";
+
+    /** The AWS region of the s3 pathStyleAccessEnabled */
+    private boolean pathStyleAccessEnabled = false;
+
     public String getBucketName() {
         return bucketName;
     }
@@ -53,5 +68,45 @@ public class S3Properties {
 
     public void setRegion(String region) {
         this.region = region;
+    }
+
+    public String getEndpoint() {
+        return endpoint;
+    }
+
+    public void setEndpoint(String endpoint) {
+        this.endpoint = endpoint;
+    }
+
+    public String getAccessKey() {
+        return accessKey;
+    }
+
+    public void setAccessKey(String accessKey) {
+        this.accessKey = accessKey;
+    }
+
+    public String getSecretKey() {
+        return secretKey;
+    }
+
+    public void setSecretKey(String secretKey) {
+        this.secretKey = secretKey;
+    }
+
+    public String getSignerType() {
+        return signerType;
+    }
+
+    public void setSignerType(String signerType) {
+        this.signerType = signerType;
+    }
+
+    public Boolean getPathStyleAccessEnabled() {
+        return pathStyleAccessEnabled;
+    }
+
+    public void setPathStyleAccessEnabled(Boolean pathStyleAccessEnabled) {
+        this.pathStyleAccessEnabled = pathStyleAccessEnabled;
     }
 }
