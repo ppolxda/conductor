@@ -199,6 +199,16 @@ public class SimpleActionProcessor implements ActionProcessor {
             Map<String, Object> inputParams = params.getInput();
             Map<String, Object> workflowInput = parametersUtils.replace(inputParams, payload);
 
+            Map<String, String> taskDomainInput = new HashMap<>();
+            if (params.getTaskToDomain() != null) {
+                Map<String, Object> taskDomain = new HashMap<>(params.getTaskToDomain());
+                taskDomainInput =
+                        parametersUtils.replace(taskDomain, payload).entrySet().stream()
+                                .collect(
+                                        Collectors.toMap(
+                                                Map.Entry::getKey, e -> (String) e.getValue()));
+            }
+
             Map<String, Object> paramsMap = new HashMap<>();
             Optional.ofNullable(params.getCorrelationId())
                     .ifPresent(value -> paramsMap.put("correlationId", value));
@@ -216,7 +226,7 @@ public class SimpleActionProcessor implements ActionProcessor {
                             .orElse(params.getCorrelationId()));
             startWorkflowInput.setWorkflowInput(workflowInput);
             startWorkflowInput.setEvent(event);
-            startWorkflowInput.setTaskToDomain(params.getTaskToDomain());
+            startWorkflowInput.setTaskToDomain(taskDomainInput);
 
             String workflowId = startWorkflowOperation.execute(startWorkflowInput);
 
